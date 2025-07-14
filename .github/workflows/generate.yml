@@ -1,0 +1,44 @@
+name: Generate JCR Intros
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # Every 10 minutes
+  workflow_dispatch:        # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install gspread google-api-python-client oauth2client pillow
+
+      - name: Run script
+        run: python generate_intro.py
+
+      - name: Copy generated images to public repo
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "GitHub Actions"
+          mkdir -p public_repo/images
+          cp ./generated_images/*.png public_repo/images/ || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to public repo
+        run: |
+          cd public_repo
+          git init
+          git remote add origin https://x-access-token:${{ secrets.PUBLIC_REPO_PAT }}@github.com/YourUsername/jcr-intros.git
+          git add .
+          git commit -m "Update generated images"
+          git push -f origin main
