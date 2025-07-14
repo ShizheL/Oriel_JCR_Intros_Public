@@ -1,12 +1,12 @@
-name: Generate JCR Intros
+name: Generate and Publish JCR Intros
 
 on:
   schedule:
-    - cron: "*/10 * * * *"  # Every 10 minutes
-  workflow_dispatch:        # Allow manual trigger
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,20 +25,18 @@ jobs:
       - name: Run script
         run: python generate_intro.py
 
-      - name: Copy generated images to public repo
+      - name: Clone public repo
         run: |
-          git config --global user.email "you@example.com"
-          git config --global user.name "GitHub Actions"
+          git clone https://x-access-token:${{ secrets.PUBLIC_REPO_PAT }}@github.com/ShizheL/Oriel_JCR_Intros_Public.git public_repo
+          rm -rf public_repo/images
           mkdir -p public_repo/images
-          cp ./generated_images/*.png public_repo/images/ || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cp generated_images/*.png public_repo/images/
 
-      - name: Push to public repo
+      - name: Commit and push to public repo
         run: |
           cd public_repo
-          git init
-          git remote add origin https://x-access-token:${{ secrets.PUBLIC_REPO_PAT }}@github.com/YourUsername/jcr-intros.git
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
           git add .
-          git commit -m "Update generated images"
-          git push -f origin main
+          git commit -m "Update generated intros" || echo "Nothing to commit"
+          git push
